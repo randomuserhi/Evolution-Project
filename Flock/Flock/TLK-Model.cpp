@@ -3,106 +3,117 @@
 
 namespace TLK
 {
-	namespace Compute
+	namespace impl
 	{
-		void Dense(Model& m, Layer l, size_t i)
+		Compile compile{};
+		Compile compute{};
+		Agent append{};
+
+		void Dense(Compile, Model& m, size_t l)
 		{
-			MatLayer& curr = m.mlayers[i + 1];
-			MatLayer& prev = m.mlayers[i];
-			MatLayer& weights = m.weights[i];
-			MatLayer& biases = m.biases[i];
-			for (size_t n = 0; n < curr.size(); ++n)
+			std::vector<Gate>& gates = m.mlayers[l].gates;
+			gates.push_back(Gate{});
+		}
+
+		void Dense(Compute, Model& m, size_t l)
+		{
+			Layer& mlayer = m.mlayers[l];
+			std::vector<Eigen::Map<Eigen::MatrixXf>>& inputs = mlayer.inputs;
+			Gate& g = mlayer.gates[0];
+			std::vector<Eigen::MatrixXf>& nodes = g.nodes;
+			std::vector<Eigen::MatrixXf>& weights = g.weights;
+			std::vector<Eigen::MatrixXf>& biases = g.biases;
+
+			for (size_t i = 0; i < m.count; ++i)
 			{
 				// https://eigen.tuxfamily.org/dox/TopicWritingEfficientProductExpression.html => refer to 4th down the graph "m1.noalias() = m4 + m2 * m3;"
-				curr[n] = biases[n];
-				curr[n].noalias() += prev[n] * weights[n];
+				nodes[i] = biases[i];
+				nodes[i].noalias() += inputs[i] * weights[i];
 
-				curr[n] = curr[n].unaryExpr([](float val) { return tanh(val); });
+				nodes[i] = nodes[i].unaryExpr([](float val) { return tanh(val); });
 			}
 		}
 
-		void LSTM(Model& m, Layer l, size_t i)
+		void Dense(Agent, Model& m, ::TLK::Layer layer, size_t l, size_t count)
 		{
-			std::cout << "LSTM\n";
-		}
+			assert(layer.input.width > 0 && layer.output.width > 0);
 
-		void Pooling(Model& m, Layer l, size_t i)
-		{
-			std::cout << "Pooling\n";
-		}
+			Layer& mlayer = m.mlayers[l];
+			Gate& g = mlayer.gates[0];
 
-		void Convolution(Model& m, Layer l, size_t i)
-		{
-			std::cout << "Convolution\n";
-		}
-	}
-
-	namespace Append
-	{
-		void Dense(Model& m, Layer l, size_t i, size_t count)
-		{
-			assert(l.input.width > 0 && l.output.width > 0);
-
-			for (; count > 0; --count)
+			for (size_t i = 0, index = m.count; i < count; ++i, ++index)
 			{
-				if (i == 0) m.mlayers[0].push_back(Eigen::MatrixXf(1, l.input.width));
-				m.mlayers[i + 1].push_back(Eigen::MatrixXf(1, l.output.width));
-				m.weights[i].push_back(Eigen::MatrixXf::Random(l.input.width, l.output.width));
-				m.biases[i].push_back(Eigen::MatrixXf::Random(1, l.output.width));
-				//m.weights[i].push_back(Eigen::MatrixXf::Ones(l.input.width, l.output.width));
-				//m.biases[i].push_back(Eigen::MatrixXf::Ones(1, l.output.width));
+				if (l != 0)
+					mlayer.inputs.push_back(Eigen::Map<Eigen::MatrixXf>(m.mlayers[l - 1].outputs[index].data(), 1, layer.input.width));
+				else
+				{
+					m.inputs.push_back(Eigen::MatrixXf::Zero(1, layer.input.width));
+					mlayer.inputs.push_back(Eigen::Map<Eigen::MatrixXf>(m.inputs[index].data(), 1, layer.input.width));
+				}
+
+				g.nodes.push_back(Eigen::MatrixXf::Zero(1, layer.output.width));
+				g.weights.push_back(Eigen::MatrixXf::Random(layer.input.width, layer.output.width));
+				g.biases.push_back(Eigen::MatrixXf::Random(1, layer.output.width));
+
+				mlayer.outputs.push_back(Eigen::Map<Eigen::MatrixXf>(g.nodes[index].data(), 1, layer.output.width));
+				if (l == m.layers.size() - 1)
+					m.outputs.push_back(Eigen::Map<Eigen::MatrixXf>(g.nodes[index].data(), 1, layer.output.width));
 			}
-		}
-
-		void LSTM(Model& m, Layer l, size_t i, size_t count)
-		{
-		}
-
-		void Pooling(Model& m, Layer l, size_t i, size_t count)
-		{
-		}
-
-		void Convolution(Model& m, Layer l, size_t i, size_t count)
-		{
 		}
 	}
 
-	const Layer::Impl Dense{ Append::Dense, Compute::Dense };
-	const Layer::Impl LSTM{ Append::LSTM, Compute::LSTM };
-	const Layer::Impl Pooling{ Append::Pooling, Compute::Pooling };
-	const Layer::Impl Convolution{ Append::Convolution, Compute::Convolution };
+	Layer::Impl Dense{ 
+		static_cast<void (*)(impl::Compute, Model&, size_t)>(impl::Dense),
+		static_cast<void (*)(impl::Agent, Model&, Layer, size_t, size_t)>(impl::Dense),
+		static_cast<void (*)(impl::Compile, Model&, size_t)>(impl::Dense)
+	};
+	Layer::Impl LSTM{ 
+		nullptr, 
+		nullptr, 
+		nullptr 
+	};
+	Layer::Impl Convolution{ 
+		nullptr, 
+		nullptr, 
+		nullptr 
+	};
+
+	void Model::Compile()
+	{
+		mlayers.reserve(layers.size());
+
+		for (size_t i = 0; i < layers.size(); ++i)
+		{
+			mlayers.push_back(impl::Layer{});
+			layers[i].impl.Compile({}, *this, i);
+		}
+
+		compiled = true;
+	}
 
 	void Model::Append(Layer layer)
 	{
-		assert(layers.size() == 0 || layers[layers.size() - 1].output == layer.input);
+		assert(!compiled);
+		assert(layers.size() == 0 || (layers.size() != 0 && layers.back().output == layer.input));
 
 		layers.push_back(layer);
 	}
 
-	void Model::Compile()
-	{
-		mlayers = new MatLayer[layers.size() + 1];
-		weights = new MatLayer[layers.size()];
-		biases = new MatLayer[layers.size()];
-	}
-
 	void Model::Agent(size_t count)
 	{
-		assert(mlayers != nullptr && weights != nullptr && biases != nullptr);
+		assert(compiled);
 
-		for (size_t i = 0; i < layers.size(); i++)
-		{
-			layers[i].methods.Append(*this, layers[i], i, count);
-		}
+		for (size_t i = 0; i < layers.size(); ++i)
+			layers[i].impl.Agent({}, *this, layers[i], i, count);
+
+		this->count += count;
 	}
 
 	void Model::Compute()
 	{
-		assert(mlayers != nullptr && weights != nullptr && biases != nullptr);
+		assert(compiled);
 
-		for (int i = 0; i < layers.size(); i++)
-		{
-			layers[i].methods.Compute(*this, layers[i], i);
-		}
+		for (size_t i = 0; i < layers.size(); ++i)
+			layers[i].impl.Compute({}, *this, i);
 	}
 }

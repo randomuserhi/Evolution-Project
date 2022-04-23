@@ -3,8 +3,6 @@
 
 namespace TLK
 {
-	typedef std::vector<Eigen::MatrixXf> MatLayer;
-
 	struct Tensor
 	{
 		size_t width;
@@ -24,47 +22,80 @@ namespace TLK
 		return a.width != b.width || a.height != b.height || a.depth != b.depth;
 	}
 
+	namespace impl
+	{
+		struct Compile {};
+		struct Compute {};
+		struct Agent {};
+
+		extern Compile compile;
+		extern Compile compute;
+		extern Agent append;
+
+		struct Gate
+		{
+			std::vector<Eigen::MatrixXf> nodes;
+			std::vector<Eigen::MatrixXf> weights;
+			std::vector<Eigen::MatrixXf> biases;
+		};
+
+		struct Layer
+		{
+			std::vector<Gate> gates;
+			std::vector<Eigen::Map<Eigen::MatrixXf>> inputs;
+			std::vector<Eigen::Map<Eigen::MatrixXf>> outputs;
+		};
+	}
+
 	struct Model;
+
 	struct Layer
 	{
 		struct Impl
 		{
-			void (* const Append)(Model&, Layer, size_t, size_t);
-			void (* const Compute)(Model&, Layer, size_t);
+			void (* const Compute)(impl::Compute, Model&, size_t);
+			void (* const Agent)(impl::Agent, Model&, Layer, size_t, size_t);
+			void (* const Compile)(impl::Compile, Model&, size_t);
 
-			Impl(void (* const compile)(Model&, Layer, size_t, size_t), void (* const compute)(Model&, Layer, size_t)) : Append(compile), Compute(compute) {};
+			Impl(
+				void (*Compute)(impl::Compute, Model&, size_t), 
+				void (*Agent)(impl::Agent, Model&, Layer, size_t, size_t),
+				void (*Compile)(impl::Compile, Model&, size_t)
+			) : Compute(Compute), Agent(Agent), Compile(Compile) {}
 		};
 
 		const Tensor input;
 		const Tensor output;
-		const Impl methods;
 
-		Layer(Impl type, Tensor input, Tensor output) : methods(type), input(input), output(output) {};
+		const Impl impl;
+
+		Layer(Impl type, Tensor input, Tensor output) : impl(type), input(input), output(output) {}
 	};
 
-	const extern Layer::Impl Dense;
-	const extern Layer::Impl LSTM;
-	const extern Layer::Impl Pooling;
-	const extern Layer::Impl Convolution;
+	extern Layer::Impl Dense;
+	extern Layer::Impl LSTM;
+	extern Layer::Impl Convolution;
 
 	struct Model
 	{
+		struct Impl;
+
 		std::vector<Layer> layers;
+		std::vector<impl::Layer> mlayers;
 
-		MatLayer* mlayers;
-		MatLayer* weights;
-		MatLayer* biases;
+		std::vector<Eigen::MatrixXf> inputs;
+		std::vector<Eigen::Map<Eigen::MatrixXf>> outputs;
 
-		~Model()
-		{
-			delete[] mlayers;
-			delete[] weights;
-			delete[] biases;
-		}
+		int count = 0;
 
 		void Compile();
+
+		void Agent(size_t count);
 		void Append(Layer layer);
-		void Agent(size_t count = 1);
+
 		void Compute();
+
+	private:
+		bool compiled = false;
 	};
 }
