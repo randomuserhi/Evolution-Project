@@ -42,6 +42,8 @@ namespace TLK
 		struct Layer
 		{
 			std::vector<Gate> gates;
+			std::vector<Eigen::MatrixXf> state;
+			std::vector<Eigen::MatrixXf> buffer;
 			std::vector<Eigen::Map<Eigen::MatrixXf>> inputs;
 			std::vector<Eigen::Map<Eigen::MatrixXf>> outputs;
 		};
@@ -53,12 +55,12 @@ namespace TLK
 	{
 		struct Impl
 		{
-			void (* const Compute)(impl::Compute, Model&, size_t);
+			void (* const Compute)(impl::Compute, Model&, Layer, size_t);
 			void (* const Agent)(impl::Agent, Model&, Layer, size_t, size_t);
 			void (* const Compile)(impl::Compile, Model&, size_t);
 
 			Impl(
-				void (*Compute)(impl::Compute, Model&, size_t), 
+				void (*Compute)(impl::Compute, Model&, Layer, size_t),
 				void (*Agent)(impl::Agent, Model&, Layer, size_t, size_t),
 				void (*Compile)(impl::Compile, Model&, size_t)
 			) : Compute(Compute), Agent(Agent), Compile(Compile) {}
@@ -86,7 +88,7 @@ namespace TLK
 		std::vector<Eigen::MatrixXf> inputs;
 		std::vector<Eigen::Map<Eigen::MatrixXf>> outputs;
 
-		int count = 0;
+		size_t count = 0;
 
 		void Compile();
 
