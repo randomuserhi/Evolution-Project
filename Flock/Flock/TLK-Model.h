@@ -1,6 +1,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#define TLK_DEBUGMODE
+
 namespace TLK
 {
 	struct Tensor

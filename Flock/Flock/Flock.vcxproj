@@ -157,6 +157,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Flock.cpp" />
+    <ClCompile Include="TLK-Model-Convolution.cpp" />
+    <ClCompile Include="TLK-Model-Dense.cpp" />
+    <ClCompile Include="TLK-Model-Flatten.cpp" />
+    <ClCompile Include="TLK-Model-LSTM.cpp" />
+    <ClCompile Include="TLK-Model-Pooling.cpp" />
     <ClCompile Include="TLK-Model.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -27,6 +27,21 @@
     <ClCompile Include="TLK-Model.cpp">
       <Filter>Source Files\TLK</Filter>
     </ClCompile>
+    <ClCompile Include="TLK-Model-Dense.cpp">
+      <Filter>Source Files\TLK</Filter>
+    </ClCompile>
+    <ClCompile Include="TLK-Model-LSTM.cpp">
+      <Filter>Source Files\TLK</Filter>
+    </ClCompile>
+    <ClCompile Include="TLK-Model-Convolution.cpp">
+      <Filter>Source Files\TLK</Filter>
+    </ClCompile>
+    <ClCompile Include="TLK-Model-Pooling.cpp">
+      <Filter>Source Files\TLK</Filter>
+    </ClCompile>
+    <ClCompile Include="TLK-Model-Flatten.cpp">
+      <Filter>Source Files\TLK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TLK.h">
