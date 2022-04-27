@@ -9,9 +9,16 @@ int main(int argc, char* argv[])
     std::srand((unsigned int)time(NULL));
 
     TLK::Model m{};
-    m.Append(TLK::Layer(TLK::Convolution, TLK::Tensor(100, 100, 1), TLK::Tensor(3, 3), 1));
+    m.Append(TLK::Layer(TLK::Pooling, TLK::Tensor(100, 100, 1), TLK::Tensor(2, 2), 2, 2));
+    //m.Append(TLK::Layer(TLK::Flatten, TLK::Tensor(2, 2, 2), TLK::Tensor(8, 1)));
     m.Compile();
-    m.Agent(100);
+    m.Agent(1);
+
+    m.Duplicate(0);
+    m.Mutate(1);
+
+    m.RemoveAt(0);
+    m.Recompile();
 
     // Start Timer
     for (size_t i = 0; i < 1; ++i)

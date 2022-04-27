@@ -111,7 +111,6 @@ namespace TLK
 		{
 			Layer& mlayer = m.mlayers[l];
 			std::vector<Eigen::Map<Eigen::MatrixXf>>& inputs = mlayer.inputs;
-			std::vector<Eigen::Map<Eigen::MatrixXf>>& hidden = mlayer.outputs;
 			std::vector<Eigen::MatrixXf>& buffer = mlayer.buffer;
 			Gate& g = mlayer.gates[0];
 			std::vector<Eigen::MatrixXf>& nodes = g.nodes;
@@ -134,9 +133,9 @@ namespace TLK
 					int rx = -layer.zeroPadding;
 					for (size_t x = 0; x < layer.output.width; ++buffidx, ++x, rx += layer.strideX)
 					{
-						for (int fy = 0, bufffidx = 0, fidx = 0; fy < layer.filter.height; ++fy)
+						for (int fy = 0, fidx = 0; fy < layer.filter.height; ++fy)
 						{
-							for (int fx = 0; fx < layer.filter.width; ++bufffidx, ++fx, ++fidx)
+							for (int fx = 0; fx < layer.filter.width; ++fidx, ++fx)
 							{
 								for (size_t z = 0; z < layer.input.depth; ++z)
 								{
@@ -148,7 +147,7 @@ namespace TLK
 										size_t idx = locationX + locationY * layer.input.width;
 										val = inputBuffer[idx * layer.input.depth + z];
 									}
-									convBuffer[buffidx * filterVolume * layer.input.depth + z * filterVolume + bufffidx] = val;
+									convBuffer[buffidx * filterVolume * layer.input.depth + z * filterVolume + fidx] = val;
 								}
 							}
 						}

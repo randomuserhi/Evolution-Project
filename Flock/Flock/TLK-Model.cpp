@@ -9,25 +9,6 @@
 
 namespace TLK
 {
-	Layer::Impl Pooling{
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-	Layer::Impl Flatten{
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-
 	void Model::Compile()
 	{
 		assert(!compiled);

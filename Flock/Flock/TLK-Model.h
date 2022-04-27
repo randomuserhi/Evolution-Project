@@ -89,6 +89,7 @@ namespace TLK
 
 		const Impl impl;
 
+		//Add overload dispatch tags to make these less ambiguous
 		Layer(Impl type, Tensor input, Tensor output) : 
 			impl(type), input(input), output(output),
 			filter(), strideX(0), strideY(0), zeroPadding(0)
@@ -100,11 +101,20 @@ namespace TLK
 				numFilters),
 			filter(filter.width, filter.height, input.depth), strideX(strideX), strideY(strideY), zeroPadding(zeroPadding)
 		{}
+		Layer(Impl type, Tensor input, Tensor filter, int strideX, int strideY, int zeroPadding = 0) :
+			impl(type), input(input), output(
+				std::ceil((input.width + zeroPadding * 2 - (filter.width - 1)) / (float)strideX),
+				std::ceil((input.height + zeroPadding * 2 - (filter.height - 1)) / (float)strideY),
+				input.depth),
+			filter(filter.width, filter.height, input.depth), strideX(strideX), strideY(strideY), zeroPadding(zeroPadding)
+		{}
 	};
 
 	extern Layer::Impl Dense;
 	extern Layer::Impl LSTM;
 	extern Layer::Impl Convolution;
+	extern Layer::Impl Flatten;
+	extern Layer::Impl Pooling;
 
 	struct Model
 	{
