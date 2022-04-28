@@ -55,6 +55,10 @@ namespace TLK
 			}
 		}
 
+		void Flatten(Reset, Model& m, ::TLK::Layer layer, size_t l, size_t index)
+		{
+		}
+
 		void Flatten(Duplicate, Model& m, ::TLK::Layer layer, size_t l, size_t index)
 		{
 			Layer& mlayer = m.mlayers[l];
@@ -93,6 +97,7 @@ namespace TLK
 	}
 
 	Layer::Impl Flatten{
+		static_cast<void (*)(impl::Reset, Model&, Layer, size_t, size_t)>(impl::Flatten),
 		static_cast<void (*)(impl::Duplicate, Model&, Layer, size_t, size_t)>(impl::Flatten),
 		static_cast<void (*)(impl::Compute, Model&, Layer, size_t)>(impl::Flatten),
 		static_cast<void (*)(impl::Mutate, Model&, Layer, size_t, size_t)>(impl::Flatten),

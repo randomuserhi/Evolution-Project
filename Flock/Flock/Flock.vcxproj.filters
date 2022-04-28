@@ -19,6 +19,12 @@
     <Filter Include="Source Files\TLK">
       <UniqueIdentifier>{1c47ac58-82db-4074-bd8f-0ba26230a277}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Engine">
+      <UniqueIdentifier>{60184536-2906-4951-a42e-fa0e06fa845a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Engine">
+      <UniqueIdentifier>{a02c1d84-c104-4ecd-aa4b-01789766c53b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Flock.cpp">
@@ -42,6 +48,9 @@
     <ClCompile Include="TLK-Model-Flatten.cpp">
       <Filter>Source Files\TLK</Filter>
     </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TLK.h">
@@ -49,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="TLK-Model.h">
       <Filter>Header Files\TLK</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Header Files\Engine</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

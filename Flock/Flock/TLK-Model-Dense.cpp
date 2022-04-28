@@ -63,6 +63,10 @@ namespace TLK
 					m.outputs.push_back(Eigen::Map<Eigen::MatrixXf>(g.nodes[i].data(), 1, layer.output.width));
 			}
 		}
+		
+		void Dense(Reset, Model& m, ::TLK::Layer layer, size_t l, size_t index)
+		{
+		}
 
 		void Dense(Duplicate, Model& m, ::TLK::Layer layer, size_t l, size_t index)
 		{
@@ -156,6 +160,7 @@ namespace TLK
 	}
 
 	Layer::Impl Dense{
+		static_cast<void (*)(impl::Reset, Model&, Layer, size_t, size_t)>(impl::Dense),
 		static_cast<void (*)(impl::Duplicate, Model&, Layer, size_t, size_t)>(impl::Dense),
 		static_cast<void (*)(impl::Compute, Model&, Layer, size_t)>(impl::Dense),
 		static_cast<void (*)(impl::Mutate, Model&, Layer, size_t, size_t)>(impl::Dense),

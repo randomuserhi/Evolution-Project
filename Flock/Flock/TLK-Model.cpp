@@ -1,102 +1,83 @@
 #include "TLK-Model.h"
+#include <fstream>
 #include <iostream>
 
 //TODO:: comment implementation
-//
-//Convolution layers are too slow performance wise to use in my application! D:
-
 //NOTE:: std::vector erase() seems to move Eigen::Map around causing problems so recompile function has to be used to remake all the maps.
 
 namespace TLK
 {
-	void Model::Compile()
+	void Model::Save(std::string fileName)
 	{
-		assert(!compiled);
+		assert(!altered);
+		assert(compiled);
 
-		mlayers.reserve(layers.size());
+		std::ofstream file;
+		file.open(fileName, std::ios_base::binary);
+		assert(file.is_open());
+
+		file.write((char*)&count, sizeof count);
 
 		for (size_t i = 0; i < layers.size(); ++i)
 		{
-			mlayers.push_back(impl::Layer{});
-			layers[i].impl.Compile({}, *this, layers[i], i);
+			impl::Layer& layer = mlayers[i];
+			for (size_t j = 0; j < layer.gates.size(); ++j)
+			{
+				impl::Gate& gate = layer.gates[j];
+				for (size_t k = 0; k < count; ++k)
+				{
+					file.write((char*)gate.biases[k].data(), sizeof(float) * gate.biases[k].size());
+					file.write((char*)gate.weights[k].data(), sizeof(float) * gate.weights[k].size());
+				}
+			}
 		}
 
-		compiled = true;
+		file.close();
 	}
 
-	void Model::Append(Layer layer)
-	{
-		assert(!altered);
-		assert(!compiled);
-		assert(layers.size() == 0 || (layers.size() != 0 && layers.back().output == layer.input));
-
-		layers.push_back(layer);
-	}
-
-	void Model::Agent(size_t count)
+	void Model::Load(std::string fileName)
 	{
 		assert(!altered);
 		assert(compiled);
 
-		for (size_t i = 0; i < layers.size(); ++i)
-			layers[i].impl.Agent({}, *this, layers[i], i, count);
+		std::ifstream file;
+		file.open(fileName, std::ios_base::binary);
+		
+		size_t total;
+		file.read((char*)&total, sizeof total);
+		if (count < total) Agent(total - count);
 
-		this->count += count;
-	}
-
-	void Model::Duplicate(size_t index)
-	{
-		assert(!altered);
-		assert(compiled);
-
-		for (size_t i = 0; i < layers.size(); ++i)
-			layers[i].impl.Duplicate({}, *this, layers[i], i, index);
-
-		++count;
-	}
-
-	void Model::Mutate(size_t index)
-	{
-		assert(compiled);
-
-		for (size_t i = 0; i < layers.size(); ++i)
-			layers[i].impl.Mutate({}, *this, layers[i], i, index);
-	}
-
-	void Model::RemoveAt(size_t index)
-	{
-		assert(compiled);
-		assert(count > 0);
-
-		altered = true;
-		--count;
-
-		for (size_t i = 0; i < layers.size(); ++i)
-			layers[i].impl.Remove({}, *this, layers[i], i, index);
-	}
-
-	void Model::Recompile()
-	{
-		assert(altered);
-
-		altered = false;
-
-		inputs.clear();
-		outputs.clear();
 		for (size_t i = 0; i < layers.size(); ++i)
 		{
-			mlayers[i].inputs.clear();
-			mlayers[i].outputs.clear();
-			layers[i].impl.Recompile({}, *this, layers[i], i);
+			impl::Layer& layer = mlayers[i];
+			for (size_t j = 0; j < layer.gates.size(); ++j)
+			{
+				impl::Gate& gate = layer.gates[j];
+				for (size_t k = 0; k < count; ++k)
+				{
+					file.read((char*)gate.biases[k].data(), sizeof(float) * gate.biases[k].size());
+					file.read((char*)gate.weights[k].data(), sizeof(float) * gate.weights[k].size());
+				}
+			}
 		}
+
+		file.close();
 	}
 
-	void Model::Compute()
+	void Model::Copy(size_t dst, size_t src)
 	{
 		assert(!altered);
 		assert(compiled);
 
 		for (size_t i = 0; i < layers.size(); ++i)
-			layers[i].impl.Compute({}, *this, layers[i], i);
+		{
+			impl::Layer& layer = mlayers[i];
+			for (size_t j = 0; j < layer.gates.size(); ++j)
+			{
+				impl::Gate& gate = layer.gates[j];
+				memcpy(gate.biases[dst].data(), gate.biases[src].data(), sizeof(float) * gate.biases[src].size());
+				memcpy(gate.weights[dst].data(), gate.weights[src].data(), sizeof(float) * gate.weights[src].size());
+			}
+		}
 	}
 }

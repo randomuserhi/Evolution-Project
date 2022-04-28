@@ -77,6 +77,10 @@ namespace TLK
 			}
 		}
 
+		void Convolution(Reset, Model& m, ::TLK::Layer layer, size_t l, size_t index)
+		{
+		}
+
 		void Convolution(Duplicate, Model& m, ::TLK::Layer layer, size_t l, size_t index)
 		{
 			Layer& mlayer = m.mlayers[l];
@@ -126,7 +130,7 @@ namespace TLK
 				float* convBuffer = buffer[i].data();
 				float* inputBuffer = inputs[i].data();
 
-				//TODO:: make these loops efficient
+				//TODO:: make these loops efficient, one way would be to use memcpy to copy rows so only 1 for loop for fy is needed and fx is accounted for entirely in memcpy
 				int ry = -layer.zeroPadding;
 				for (size_t y = 0, buffidx = 0; y < layer.output.height; ++y, ry += layer.strideY)
 				{
@@ -210,6 +214,7 @@ namespace TLK
 	}
 
 	Layer::Impl Convolution{
+		static_cast<void (*)(impl::Reset, Model&, Layer, size_t, size_t)>(impl::Convolution),
 		static_cast<void (*)(impl::Duplicate, Model&, Layer, size_t, size_t)>(impl::Convolution),
 		static_cast<void (*)(impl::Compute, Model&, Layer, size_t)>(impl::Convolution),
 		static_cast<void (*)(impl::Mutate, Model&, Layer, size_t, size_t)>(impl::Convolution),

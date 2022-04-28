@@ -1,7 +1,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#define TLK_DEBUGMODE
+//#define TLK_DEBUGMODE
 
 namespace TLK
 {
@@ -30,6 +30,7 @@ namespace TLK
 
 	namespace impl
 	{
+		struct Reset {};
 		struct Duplicate{};
 		struct Compile {};
 		struct Mutate {};
@@ -61,6 +62,7 @@ namespace TLK
 	{
 		struct Impl
 		{
+			void (* const Reset)(impl::Reset, Model&, Layer, size_t, size_t);
 			void (* const Duplicate)(impl::Duplicate, Model&, Layer, size_t, size_t);
 			void (* const Compute)(impl::Compute, Model&, Layer, size_t);
 			void (* const Mutate)(impl::Mutate, Model&, Layer, size_t, size_t);
@@ -70,6 +72,7 @@ namespace TLK
 			void (* const Recompile)(impl::Recompile, Model&, Layer, size_t);
 
 			Impl(
+				void (*Reset)(impl::Reset, Model&, Layer, size_t, size_t),
 				void (*Duplicate)(impl::Duplicate, Model&, Layer, size_t, size_t),
 				void (*Compute)(impl::Compute, Model&, Layer, size_t),
 				void (*Mutate)(impl::Mutate, Model&, Layer, size_t, size_t),
@@ -77,7 +80,7 @@ namespace TLK
 				void (*Remove)(impl::Remove, Model&, Layer, size_t, size_t),
 				void (*Compile)(impl::Compile, Model&, Layer, size_t),
 				void (*Recompile)(impl::Recompile, Model&, Layer, size_t)
-			) : Duplicate(Duplicate), Compute(Compute), Mutate(Mutate), Agent(Agent), Remove(Remove), Compile(Compile), Recompile(Recompile) {}
+			) : Reset(Reset), Duplicate(Duplicate), Compute(Compute), Mutate(Mutate), Agent(Agent), Remove(Remove), Compile(Compile), Recompile(Recompile) {}
 		};
 
 		const Tensor input;
@@ -128,16 +131,110 @@ namespace TLK
 
 		size_t count = 0;
 
-		void Compile();
+		inline void Compile()
+		{
+			assert(!compiled);
 
-		void Duplicate(size_t index);
-		void Mutate(size_t index);
-		void Agent(size_t count);
-		void Append(Layer layer);
-		void RemoveAt(size_t i);
-		void Recompile();
+			mlayers.reserve(layers.size());
 
-		void Compute();
+			for (size_t i = 0; i < layers.size(); ++i)
+			{
+				mlayers.push_back(impl::Layer{});
+				layers[i].impl.Compile({}, *this, layers[i], i);
+			}
+
+			compiled = true;
+		}
+
+		inline void Append(Layer layer)
+		{
+			assert(!altered);
+			assert(!compiled);
+			assert(layers.size() == 0 || (layers.size() != 0 && layers.back().output == layer.input));
+
+			layers.push_back(layer);
+		}
+
+		inline void Agent(size_t count)
+		{
+			assert(!altered);
+			assert(compiled);
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Agent({}, *this, layers[i], i, count);
+
+			this->count += count;
+		}
+
+		inline void Reset(size_t index)
+		{
+			assert(!altered);
+			assert(compiled);
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Reset({}, *this, layers[i], i, index);
+		}
+
+		inline void Duplicate(size_t index)
+		{
+			assert(!altered);
+			assert(compiled);
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Duplicate({}, *this, layers[i], i, index);
+
+			++count;
+		}
+
+		inline void Mutate(size_t index)
+		{
+			assert(compiled);
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Mutate({}, *this, layers[i], i, index);
+		}
+
+		inline void RemoveAt(size_t index)
+		{
+			assert(compiled);
+			assert(count > 0);
+
+			altered = true;
+			--count;
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Remove({}, *this, layers[i], i, index);
+		}
+
+		inline void Recompile()
+		{
+			assert(altered);
+
+			altered = false;
+
+			inputs.clear();
+			outputs.clear();
+			for (size_t i = 0; i < layers.size(); ++i)
+			{
+				mlayers[i].inputs.clear();
+				mlayers[i].outputs.clear();
+				layers[i].impl.Recompile({}, *this, layers[i], i);
+			}
+		}
+
+		inline void Compute()
+		{
+			assert(!altered);
+			assert(compiled);
+
+			for (size_t i = 0; i < layers.size(); ++i)
+				layers[i].impl.Compute({}, *this, layers[i], i);
+		}
+
+		void Copy(size_t dst, size_t src);
+
+		void Save(std::string fileName);
+		void Load(std::string fileName);
 
 	private:
 		bool compiled = false;

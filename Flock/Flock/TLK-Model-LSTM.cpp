@@ -72,6 +72,19 @@ namespace TLK
 			}
 		}
 
+		void LSTM(Reset, Model& m, ::TLK::Layer layer, size_t l, size_t index)
+		{
+			Layer& mlayer = m.mlayers[l];
+
+			mlayer.buffer[index].setZero();
+			mlayer.state[index].setZero();
+
+			for (size_t g = 0; g < 4; ++g)
+			{
+				mlayer.gates[g].nodes[index].setZero();
+			}
+		}
+
 		void LSTM(Duplicate, Model& m, ::TLK::Layer layer, size_t l, size_t index)
 		{
 			Layer& mlayer = m.mlayers[l];
@@ -196,6 +209,7 @@ namespace TLK
 	}
 
 	Layer::Impl LSTM{
+		static_cast<void (*)(impl::Reset, Model&, Layer, size_t, size_t)>(impl::LSTM),
 		static_cast<void (*)(impl::Duplicate, Model&, Layer, size_t, size_t)>(impl::LSTM),
 		static_cast<void (*)(impl::Compute, Model&, Layer, size_t)>(impl::LSTM),
 		static_cast<void (*)(impl::Mutate, Model&, Layer, size_t, size_t)>(impl::LSTM),
